@@ -1,5 +1,52 @@
 import tkinter as tk
 from tkinter import messagebox
+import json
+from pathlib import Path
+
+DATA_FILE = Path(__file__).resolve().parent / "task.json"
+
+
+def save_tasks():
+    tasks = list(task_list.get(0, tk.END))
+    temporary_file = DATA_FILE.with_suffix(".tmp")
+
+    try:
+        with temporary_file.open("w", encoding="utf-8") as file:
+            json.dump(tasks, file, indent=4)
+        temporary_file.replace(DATA_FILE)
+        return
+    except OSError as error:
+        messagebox.showerror(
+            "Could not save",
+            f"Your latest changes were not saved.\n\n{error}"
+        )
+        return False
+
+
+def load_tasks():
+    if not DATA_FILE.exists():
+        return True
+
+    try:
+        with DATA_FILE.open("r", encoding="utf-8") as file:
+            tasks = json.load(file)
+
+        if not isinstance(tasks, list):
+            raise ValueError("Expected a list of tasks.")
+
+    except (OSError, ValueError) as error:
+
+        messagebox.showerror(
+            "Could not load tasks",
+            f"The saved file could not be read.\n\n{error}\n\n",
+            "The app will close to protect the existing file."
+        )
+        return False
+
+    for task in tasks:
+        task_list.insert(tk.END, task)
+
+    return True
 
 
 def add_task():
@@ -10,13 +57,14 @@ def add_task():
         return
     task_list.insert(tk.END, task)
     task_entry.delete(0, tk.END)
+    save_tasks()
 
 
 def toggle_complete():
     selected = task_list.curselection()
 
     if not selected:
-        messagebox("Select a task", "Click a task first")
+        messagebox.showinfo("Select a task", "Click a task first.")
         return
 
     index = selected[0]
@@ -30,6 +78,7 @@ def toggle_complete():
     task_list.delete(index)
     task_list.insert(index, task)
     task_list.selection_set(index)
+    save_tasks()
 
 
 def delete_task():
@@ -40,6 +89,7 @@ def delete_task():
         return
 
     task_list.delete(selected[0])
+    save_tasks()
 
 
 window = tk.Tk()
@@ -75,4 +125,7 @@ delete_button = tk.Button(
 )
 delete_button.pack(side=tk.LEFT, padx=5)
 
-window.mainloop()
+if load_tasks():
+    window.mainloop()
+else:
+    window.destroy()
