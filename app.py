@@ -13,8 +13,10 @@ def save_tasks():
     try:
         with temporary_file.open("w", encoding="utf-8") as file:
             json.dump(tasks, file, indent=4)
+
         temporary_file.replace(DATA_FILE)
-        return
+        return True
+
     except OSError as error:
         messagebox.showerror(
             "Could not save",
@@ -34,11 +36,13 @@ def load_tasks():
         if not isinstance(tasks, list):
             raise ValueError("Expected a list of tasks.")
 
-    except (OSError, ValueError) as error:
+        if not all(isinstance(task, str) for task in tasks):
+            raise ValueError("Each task must be text.")
 
+    except (OSError, ValueError) as error:
         messagebox.showerror(
             "Could not load tasks",
-            f"The saved file could not be read.\n\n{error}\n\n",
+            f"The saved file could not be read.\n\n{error}\n\n"
             "The app will close to protect the existing file."
         )
         return False
